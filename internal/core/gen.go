@@ -96,6 +96,9 @@ func jdbcSet(t ktType, idx int, name string) string {
 	if t.IsUUID() {
 		return fmt.Sprintf("stmt.setObject(%d, %s)", idx, name)
 	}
+	if t.IsBlob() {
+		return fmt.Sprintf("stmt.setObject(%d, %s)", idx, name)
+	}
 	return fmt.Sprintf("stmt.set%s(%d, %s)", t.Name, idx, name)
 }
 
@@ -175,6 +178,9 @@ func jdbcGet(t ktType, idx int) string {
 	}
 	if t.IsBigDecimal() {
 		return fmt.Sprintf(`results.getBigDecimal(%d)`, idx)
+	}
+	if t.IsBlob() {
+		return fmt.Sprintf(`results.getObject(%d)`, idx)
 	}
 	return fmt.Sprintf(`results.get%s(%d)`, t.Name, idx)
 }
@@ -371,6 +377,8 @@ func (t ktType) IsBigDecimal() bool {
 	return t.Name == "java.math.BigDecimal"
 }
 
+func (t ktType) IsBlob() bool { return t.Name == "Blob" }
+
 func makeType(req *plugin.GenerateRequest, col *plugin.Column) ktType {
 	typ, isEnum := ktInnerType(req, col)
 	return ktType{
@@ -390,6 +398,8 @@ func ktInnerType(req *plugin.GenerateRequest, col *plugin.Column) (string, bool)
 		return mysqlType(req, col)
 	case "postgresql":
 		return postgresType(req, col)
+	case "sqlite":
+		return sqliteType(col)
 	default:
 		return "Any", false
 	}
